@@ -17,6 +17,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 // ---------------------------------------------------------------------------
 // Tiny in-memory session store:  token -> username
 // ---------------------------------------------------------------------------
@@ -134,11 +142,12 @@ try {
     )
     .join('');
 
+
   // ---- FIX 3: REFLECTED XSS ---------------------------------------------
   // The raw search term is echoed back into the HTML response, so whatever
   // the visitor typed is parsed by the browser as markup.
   // Fix idea: HTML-encode any untrusted value before it lands in the page.
-  const heading = `<h1>Search</h1><p class="note">Showing results for “${q}”</p>`;
+  const heading = `<h1>Search</h1><p class="note">Showing results for “${escapeHTML(q)}”</p>`;
 
   const bodyErr = error ? `<p class="error">Query error: ${error}</p>` : '';
   const list = rows.length ? `<div class="grid">${results}</div>` : '<p>No matches.</p>';
