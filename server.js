@@ -102,18 +102,27 @@ app.get('/search', (req, res) => {
   // Fix idea: bind the search value with a "?" placeholder, and choose the
   //   ORDER BY expression from a fixed allow-list (you cannot bind an
   //   identifier the way you bind a value).
-  const sql =
-    `SELECT id, title, species, location FROM listings ` +
-    `WHERE title LIKE '%${q}%' OR species LIKE '%${q}%' ` +
-    `ORDER BY ${sort}`;
+  const allowedSort = {
+    title: "title",
+    species: "species",
+    location: "location"
+};
 
-  let rows = [];
-  let error = null;
-  try {
-    rows = all(sql);
-  } catch (e) {
-    error = e.message;
-  }
+const orderBy = allowedSort[sort] || "title";
+
+const sql =
+  `SELECT id, title, species, location
+   FROM listings
+   WHERE title LIKE ? OR species LIKE ?
+   ORDER BY ${orderBy}`;
+
+let rows = [];
+let error = null;
+try {
+  rows = all(sql, [`%${q}%`, `%${q}%`]);
+} catch (e) {
+  error = e.message;
+}
 
   const results = rows
     .map(
@@ -165,11 +174,11 @@ app.post('/login', (req, res) => {
   // Fix idea: use a parameterized query so inputs are treated as pure data.
   const sql =
     `SELECT id, username FROM users ` +
-    `WHERE username = '${username}' AND password = '${password}'`;
+    `WHERE username = ? AND password = ?`;
 
   let user = null;
   try {
-    user = get(sql);
+    user = get(sql, [username, password]);
   } catch (e) {
     // fall through to failure
   }
