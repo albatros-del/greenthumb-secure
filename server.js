@@ -17,6 +17,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self'"
+  );
+  next();
+}); 
+
 function escapeHTML(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -202,14 +210,14 @@ app.post('/login', (req, res) => {
   // on the page can read it via document.cookie and the browser attaches it
   // to cross-site requests.
   // Fix idea: add HttpOnly and SameSite (and Secure when served over HTTPS).
-  res.setHeader('Set-Cookie', `sid=${token}; Path=/`);
+  res.setHeader('Set-Cookie', `sid=${token}; Path=/; HttpOnly; SameSite=Strict`);
   res.redirect('/me');
 });
 
 app.get('/logout', (req, res) => {
   const sid = parseCookies(req).sid;
   if (sid) sessions.delete(sid);
-  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0');
+  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
   res.redirect('/');
 });
 
@@ -253,8 +261,8 @@ app.get('/listing/:id', (req, res) => {
     ? comments
         .map(
           (c) => `<div class="comment">
-             <p class="comment-body">${c.body}</p>
-             <p class="comment-meta">— ${c.author}, ${c.created_at}</p>
+             <p class="comment-body">${escapeHTML(c.body)}</p>
+             <p class="comment-meta">— ${escapeHTML(c.author)}, ${escapeHTML(c.created_at)}</p>
            </div>`
         )
         .join('')
@@ -306,6 +314,7 @@ app.post('/listing/:id/comments', (req, res) => {
 //   JS in /app.js and all CSS in /styles.css, so a 'self'-based policy with
 //   no 'unsafe-inline' will not break anything it legitimately does.
 // ---------------------------------------------------------------------------
+
 
 initDb().then(() => {
   app.listen(PORT, () => {
